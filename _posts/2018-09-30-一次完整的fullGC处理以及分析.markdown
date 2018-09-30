@@ -1,0 +1,30 @@
+&emsp;&emsp;前几天的一个早晨，哨兵报警突然响起，显示有机器fullGC，频率基本上是每分钟一次，几乎所有的机器都有，初步判断内存应该可以释放，只是内存使用过快或者释放太慢，问题应该不会太严重，可能部分请求响应时间会变长。
+
+# 1.恢复应用，保留现场
+&emsp;&emsp;先将一台机器从soa上摘下，保留现场用来分析fullGC原因，发现摘下的机器不再fullGC，断定fullGC原因跟外部请求有关。分批重启机器，发现重启完很快又会fullGC，没有必要继续重启。
+
+# 2.dump内存
+&emsp;&emsp;找PE dump内存，文件名后缀无所谓，只要是二进制文件就可以了。
+> <font color=#FF0000>jmap -dump:format=b,file=文件名 [pid]</font>
+
+&emsp;&emsp;由于fullGC的频次比较低，如果不在fullGC即将发生时dump内存，可能dump出的内存情况正常而不能分析出导致fullGC的原因。应该先观察合适的dump开始时间，选择在old区占用到达80%以上再dump，这样dump出来的内存文件才能包含导致fullGC的对象，通常文件也会比较大。
+> <font color=#FF0000>jstat -gcutil 3187 1000 1000</font>
+
+&emsp;&emsp;dump之后还需要将文件传到本地分析，通常需要先将dump出来的二进制文件压缩再传输到本地。
+> <font color=#FF0000>tar czvf heap.bin.tar.gz heap.bin</font>
+
+> <font color=#FF0000>scp local_file remote_username@remote_ip:remote_file</font>
+
+# 3.分析内存对象占用
+&emsp;&emsp;提前下载好MAT（Eclipse Memory Analyzer）工具，用eclipse的同学直接选在插件版就可以了，用idea的同学可以下载单独的软件。
+
+&emsp;&emsp;使用这个软件主要关注Leak Suspects报告，使用之前最好将下面这个勾打上，否则跟gc roots不可达的对象（即可能马上被回收的对象）将不会被统计，而这部分对象可能就是导致fullGC的原因。
+![](https://ws1.sinaimg.cn/large/708e88fegy1fu02ewdua2j20r80fvn2p.jpg)
+
+&emsp;&emsp;打开内存文件并分析，会得到如下的报告，报告包含两部分，overview部分展示内存占用情况，problem suspect部分展示可能出现内存泄漏的地方。从下图可以看出SkuDTO这个对象占用了1.8GB内存，很明显这是不正常的。
+![](https://ws1.sinaimg.cn/large/708e88fegy1fu02qnj63uj20r80mbdop.jpg)
+
+# 4.修复问题
+&emsp;&emsp;查看接口代码，基本没有什么大问题，查看soa上接口时间，发现接口相比之前变慢了几十倍，而且接口调用量也比较大，初步怀疑是接口变慢而导致调用阻塞在这个接口上，但是调用结束内存是能够释放的，只是大量对象长时间在老年代中不能立即回收。
+&emsp;&emsp;回想起昨晚刚迁移了缓存的机房，可能是由于缓存get时间变长导致的，查看缓存get时间确实从0.1ms变成了3ms，但是也不至于就导致接口时间变成秒级吧。再看一遍代码，发现接口内部用一个for循环去缓存取东西，如果传入的参数为1000，则需要取1000次，不难解释接口的时间从几十毫秒变成几秒。
+&emsp;&emsp;修复问题则比较简单，批量去取缓存就好了，平时写代码也要注意不要在循环中涉及网络调用。
