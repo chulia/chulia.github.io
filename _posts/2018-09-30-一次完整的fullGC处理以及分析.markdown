@@ -1,3 +1,16 @@
+---
+layout:     post
+title:      "一次完整的fullGC处理以及分析"
+subtitle:   " \"fullGC不用慌，MAT帮你忙\""
+date:       2018-09-30 12:00:00
+author:     "Chulia"
+header-img: "img/post-bg-fullGC.jpg"
+catalog: true
+tags:
+    - fullGC
+    - JVM
+---
+
 &emsp;&emsp;前几天的一个早晨，哨兵报警突然响起，显示有机器fullGC，频率基本上是每分钟一次，几乎所有的机器都有，初步判断内存应该可以释放，只是内存使用过快或者释放太慢，问题应该不会太严重，可能部分请求响应时间会变长。
 
 # 1.恢复应用，保留现场
