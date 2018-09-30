@@ -19,11 +19,11 @@ tags:
 # 2.dump内存
 找PE dump内存，文件名后缀无所谓，只要是二进制文件就可以了。
 
-<font color=green>jmap -dump:format=b,file=文件名 [pid]</font>
+`jmap -dump:format=b,file=文件名 [pid]`
 
 由于fullGC的频次比较低，如果不在fullGC即将发生时dump内存，可能dump出的内存情况正常而不能分析出导致fullGC的原因。应该先观察合适的dump开始时间，选择在old区占用到达80%以上再dump，这样dump出来的内存文件才能包含导致fullGC的对象，通常文件也会比较大。
-hah
-<font color=#FF0000>jstat -gcutil 3187 1000 1000</font>
+
+`jstat -gcutil 3187 1000 1000`
 
 dump之后还需要将文件传到本地分析，通常需要先将dump出来的二进制文件压缩再传输到本地。
 > <font color=green>tar czvf heap.bin.tar.gz heap.bin</font>
