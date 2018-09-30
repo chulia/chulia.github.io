@@ -26,9 +26,10 @@ tags:
 `jstat -gcutil 3187 1000 1000`
 
 dump之后还需要将文件传到本地分析，通常需要先将dump出来的二进制文件压缩再传输到本地。
-> <font color=green>tar czvf heap.bin.tar.gz heap.bin</font>
 
-<font color=#FF0000>scp local_file remote_username@remote_ip:remote_file</font>
+`tar czvf heap.bin.tar.gz heap.bin`
+
+`scp local_file remote_username@remote_ip:remote_file`
 
 # 3.分析内存对象占用
 提前下载好MAT（Eclipse Memory Analyzer）工具，用eclipse的同学直接选在插件版就可以了，用idea的同学可以下载单独的软件。
